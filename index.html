@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#0c1418">
+  <meta name="description" content="A playable low-speed vehicle dynamics sandbox: Pacejka lateral forces, touch steering assistance, and traction telemetry.">
+  <title>Parking Dynamics Lab — Mobile Vehicle Physics</title>
+  <link rel="stylesheet" href="./src/style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="identity">
+        <span class="brand-mark">P<span>·</span>D</span>
+        <div><h1>Parking Dynamics <span>Lab</span></h1><p>TOUCH DRIVING · PHYSICS PROTOTYPE v0.1</p></div>
+      </div>
+      <div class="top-actions">
+        <div class="online-tag"><span class="online-dot"></span> 50 Hz physics</div>
+        <button id="reset" class="button secondary" type="button">↺ 重置</button>
+      </div>
+    </header>
+
+    <main class="main-layout">
+      <section class="sim-panel">
+        <div class="sim-top">
+          <div><strong>Parking Test Ground</strong><span>TOP-DOWN / KINEMATIC + LATERAL DYNAMICS</span></div>
+          <div class="sim-badges"><span id="roadBadge">DRY ROAD</span><span id="assistBadge">ASSIST ON</span></div>
+        </div>
+        <div class="viewport" id="viewport">
+          <canvas id="simulation" aria-label="Interactive top-down driving simulation"></canvas>
+          <div class="hud hud-left"><span class="small">SPEED</span><strong id="speed">0.0</strong><span class="unit">km/h</span></div>
+          <div class="hud hud-right"><span class="small">GEAR</span><strong id="gear">D</strong><span class="unit" id="roadStatus">μ = 0.88</span></div>
+          <div class="controls" aria-label="Touch controls">
+            <div class="steering-column">
+              <div id="steeringPad" class="steering-pad" role="slider" tabindex="0" aria-label="Steering" aria-valuemin="-100" aria-valuemax="100" aria-valuenow="0">
+                <svg id="steeringWheel" class="steering-wheel" viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="42" fill="none" stroke="currentColor" stroke-width="9"/><circle cx="50" cy="50" r="12" fill="currentColor"/><path d="M50 50 V12 M44 50 L16 70 M56 50 L84 70" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round"/></svg>
+              </div>
+              <span class="control-note">拖动方向盘 · A / D</span>
+            </div>
+            <div class="pedal-column">
+              <div class="pedal-buttons">
+                <button id="brake" class="pedal brake" type="button"><span>■</span>刹车</button>
+                <button id="throttle" class="pedal throttle" type="button"><span>▲</span>油门</button>
+              </div>
+              <span class="control-note">按住操作 · W / S</span>
+            </div>
+          </div>
+          <div class="hint">键盘：W 油门 / S 刹车 / A D 转向 / R 切换倒挡</div>
+        </div>
+        <div class="sim-footer">
+          <div class="legend"><i class="car-legend"></i>车辆轨迹 <i class="spot-legend"></i>停车线 <i class="cone-legend"></i>障碍锥</div>
+          <button type="button" id="clearTrail" class="text-button">清除轨迹</button>
+        </div>
+      </section>
+      <aside class="right-panel">
+        <section class="section-card setup">
+          <div class="section-heading"><span>01 / DRIVE CONTROL</span><h2>驾驶辅助</h2></div>
+          <label class="switch-line" for="assist"><span><strong>稳定性辅助</strong><small>侧滑角补偿 + 平滑反打方向</small></span><input type="checkbox" id="assist" checked><span class="switch"></span></label>
+          <div class="field-name"><span>路面附着系数</span><strong id="muValue">0.88</strong></div>
+          <input id="mu" class="range" type="range" min="0.25" max="1.05" step="0.01" value="0.88" aria-label="Road friction coefficient">
+          <div class="range-labels"><span>湿滑路面 0.25</span><span>干燥路面 1.05</span></div>
+          <div class="gear-control" aria-label="Gear selection"><button id="drive" class="selected" type="button">D · 前进</button><button id="reverse" type="button">R · 倒挡</button></div>
+        </section>
+        <section class="section-card">
+          <div class="section-heading"><span>02 / LIVE TELEMETRY</span><h2>物理遥测</h2></div>
+          <div class="metric-grid">
+            <div class="metric"><small>横摆角速度</small><strong id="yawRate">0.0<span>°/s</span></strong></div>
+            <div class="metric"><small>质心侧偏角 β</small><strong id="beta">0.0<span>°</span></strong></div>
+            <div class="metric"><small>前轴侧向力</small><strong id="frontFy">0<span>N</span></strong></div>
+            <div class="metric"><small>后轴侧向力</small><strong id="rearFy">0<span>N</span></strong></div>
+          </div>
+          <div class="bar-label"><span>摩擦圆利用率</span><strong id="tractionText">0%</strong></div>
+          <div class="bar-track"><div id="tractionFill"></div></div>
+          <div class="bar-foot"><span>LOW LOAD</span><span>FRICTION LIMIT</span></div>
+        </section>
+        <section class="section-card info-card">
+          <div class="section-heading"><span>03 / IMPLEMENTATION</span><h2>为什么它值得开源？</h2></div>
+          <ul>
+            <li><b>Pacejka</b> 非线性轮胎侧向力</li>
+            <li><b>Combined slip</b> 摩擦圆限幅</li>
+            <li><b>Counter-steer</b> 触屏转向辅助</li>
+            <li><b>Fixed-step</b> 50 Hz 物理更新</li>
+          </ul>
+          <p class="disclaimer">这是车辆动力学概念验证，不是实车标定或 Unity WheelCollider 的替代品。</p>
+        </section>
+      </aside>
+    </main>
+    <footer>Parking Dynamics Lab · Static, dependency-free browser demo · C# reference implementation included in repository</footer>
+  </div>
+  <script type="module" src="./src/app.js"></script>
+</body>
+</html>
